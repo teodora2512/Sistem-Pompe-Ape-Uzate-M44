@@ -1,0 +1,14 @@
+# Fișiere temporare sistem
+.DS_Store
+Thumbs.db
+
+# Backup-uri și log-uri software PLC (TIA Portal / Codesys)
+*.log
+*.tmp
+*.bak
+/program_PLC/proiect_complet/Logs/
+/program_PLC/proiect_complet/System/
+
+# Arhive dacă nu vreți să fie urmărite
+*.zip
+*.rar
