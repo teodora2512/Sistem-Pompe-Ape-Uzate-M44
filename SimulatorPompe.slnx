@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/OtherConsumers/">
+    <Project Path="ConsoleConsummer/ConsoleConsummer.csproj" Id="3c96f144-bc9a-4b94-abfa-993f72471722" />
+  </Folder>
+  <Folder Name="/SimulatorApps/">
+    <Project Path="Communicator/Communicator.csproj" Id="e3178a3e-1bf4-4bc1-ba4b-e1c7cece76d6" />
+    <Project Path="Monitor/Monitor.csproj" Id="1dc52620-afaa-471d-9d29-f4c2132032a1" />
+    <Project Path="Simulator/Simulator.csproj" Id="8e54fe45-8603-40bc-bffb-b021f7430adb" />
+  </Folder>
+  <Project Path="DataModel/DataModel.csproj" Id="13a4c8a6-aae8-466f-a9cb-587f53ddb8b9" />
+  <Project Path="WebAPI/WebAPI.csproj" Id="c77a8a41-8f26-4998-af3e-c7f818706233" />
+</Solution>
