@@ -1,4 +1,5 @@
 ﻿using DataModel;
+using System.Diagnostics.Eventing.Reader;
 using System.Windows.Controls;
 
 namespace Simulator
@@ -39,15 +40,67 @@ namespace Simulator
         // S3 - test manual P1, ruleaza 3s apoi revine automat
         private void Button_Click_S3_TestP1(object sender, System.Windows.RoutedEventArgs e)
         {
-            _viewModel.ForceNextState(ProcessState.TestPump1);
-            StatusLabel.Text = "Status: Test Pompa 1 activ - 3 secunde...";
+            if (_viewModel.IsAnalogModeActive)
+            {
+               //Mod Analogic - Toggle
+                if (!_viewModel.IsS3Pressed)
+                {
+                    // primul click: intra in reglaj
+                    _viewModel.IsS3Pressed = true;
+                    _viewModel.IsS1Pressed = true;
+                    StatusLabel.Text = "REGLAJ P1: Rotiti U2, apoi apasati S3 din nou pentru salvare.";
+                    ((Button)sender).Background = System.Windows.Media.Brushes.DarkOrange; ;
+                }
+                else
+                {
+                    // al doilea click: salveaza
+                    _viewModel.CheckAndSaveAnalogThresholds();
+                    _viewModel.IsS3Pressed = false;
+                    _viewModel.IsS1Pressed = false;
+                    StatusLabel.Text = $"Prag P1 salvat: {_viewModel.LevelB2:F0} px";
+                    ((Button)sender).Background = new System.Windows.Media.SolidColorBrush(
+                        System.Windows.Media.Color.FromRgb(0x1D, 0x4E, 0xD8));
+                }
+            }
+            else
+            {
+                _viewModel.ForceNextState(ProcessState.TestPump1);
+                StatusLabel.Text = "Status: Test Pompa 1 activ - 3 secunde...";
+            }
+           
         }
 
         // S4 - test manual P2, ruleaza 3s apoi revine automat
         private void Button_Click_S4_TestP2(object sender, System.Windows.RoutedEventArgs e)
         {
-            _viewModel.ForceNextState(ProcessState.TestPump2);
-            StatusLabel.Text = "Status: Test Pompa 2 activ - 3 secunde...";
+
+            // Daca modul analogic este activat, butonul devine MEMORARE prag
+            if (_viewModel.IsAnalogModeActive)
+            {
+                //Mod Analogic - Toggle
+                if (!_viewModel.IsS4Pressed)
+                {
+                    _viewModel.IsS4Pressed = true;
+                    _viewModel.IsS1Pressed = true;
+                    StatusLabel.Text = "REGLAJ P2: Rotiti U2, apoi apasati S4 din nou pentru salvare.";
+                    ((Button)sender).Background = System.Windows.Media.Brushes.DarkOrange;
+                
+                }
+                else
+                {
+                    _viewModel.CheckAndSaveAnalogThresholds();
+                    _viewModel.IsS4Pressed = false;
+                    _viewModel.IsS1Pressed = false;
+                    StatusLabel.Text = $"Prag P2 salvat: {_viewModel.LevelB5:F0} px";
+                    ((Button)sender).Background = new System.Windows.Media.SolidColorBrush(
+                        System.Windows.Media.Color.FromRgb(0x1D, 0x4E, 0xD8));
+                }
+            }
+            else
+            {
+                _viewModel.ForceNextState(ProcessState.TestPump2);
+                StatusLabel.Text = "Status: Test Pompa 2 activ - 3 secunde...";
+            }
         }
 
         // === RESET ===

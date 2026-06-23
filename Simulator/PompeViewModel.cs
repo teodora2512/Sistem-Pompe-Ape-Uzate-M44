@@ -22,13 +22,82 @@ namespace Simulator
         // Trimite starea curenta catre Monitor prin TCP
         private Sender _monitorSender;
 
+        //----Variabile functionalitatea 2 (ANALOGICA)----
+        private bool _isAnalogModeActive = false;
+        public bool IsAnalogModeActive
+        {
+            get => _isAnalogModeActive;
+            set
+            {
+                _isAnalogModeActive = value;
+                OnPropertyChanged(nameof(IsAnalogModeActive));
+                OnPropertyChanged(nameof(AnalogLinesVisibility));  
+                if (!value)
+                {
+                    _savedLevelB2 = 100.0;
+                    _savedLevelB5 = 180.0;
+                    OnPropertyChanged(nameof(LevelB2));
+                    OnPropertyChanged(nameof(LevelB5));
+                    OnPropertyChanged(nameof(LevelB2Top));  
+                    OnPropertyChanged(nameof(LevelB5Top));   
+                }
+            }
+        }
+
+        private double _potentiometerVoltage1 = 1.0; // Rata de incarcare (default: 1.0V)
+
+        // Calculeaza automat unghiul pentru Potentiometrul 1 (36 de grade per Volt)
+        public double Potentiometer1Angle =>
+    -135 + (PotentiometerVoltage1 / 10.0) * 270;
+        public double PotentiometerVoltage1
+        {
+            get => _potentiometerVoltage1;
+            set
+            {
+                _potentiometerVoltage1 = Math.Max(0.0, Math.Min(10.0, value)); // Limiteaza intre 0 si 10V
+                OnPropertyChanged(nameof(PotentiometerVoltage1));
+                OnPropertyChanged(nameof(Potentiometer1Angle));
+            }
+        }
+
+        private double _potentiometerVoltage2 = 0.0; //Reglare praguri
+                                                     // Calculeaza automat unghiul pentru Potentiometrul 2
+        public double Potentiometer2Angle =>
+    -135 + (PotentiometerVoltage2 / 10.0) * 270;
+        public double PotentiometerVoltage2
+        {
+            get => _potentiometerVoltage2;
+            set
+            {
+                _potentiometerVoltage2 = Math.Max(0.0, Math.Min(10.0, value)); // Limiteaza intre 0 si 10V
+                OnPropertyChanged(nameof(PotentiometerVoltage2));
+                OnPropertyChanged(nameof(Potentiometer2Angle));
+
+                OnPropertyChanged(nameof(Pot2TargetPixelLevel));
+                OnPropertyChanged(nameof(Pot2TargetTop));
+
+                CheckAndSaveAnalogThresholds();
+            }
+        }
+
+      
+
+        private double _savedLevelB2 = 100.0; // P1 Start (implicit 100)
+        private double _savedLevelB5 = 180.0; // P2 Start (implicit 180)
+
+        // --- IESIRI ANALOGICE (0-10V pentru export) ---
+        public double AnalogOutput1_WaterLevelVoltage => (WaterLevel / 260.0) * 10.0;
+        public double AnalogOutput2_SetPointVoltage => (TheStateOfTheProcess == ProcessState.BothPumpsRunning)
+            ? (_savedLevelB5 / 260.0) * 10.0
+            : (_savedLevelB2 / 260.0) * 10.0;
+
         // Nivelurile senzorilor in pixeli (bazin = 260px total)
         // Canvas.Top corespunzator = 400 - LevelBx
-        public const double LevelB1 = 30;   // nivel minim - oprire pompe
-        public const double LevelB2 = 100;  // pornire P1
-        public const double LevelB4 = 80;   // backup pentru B1
-        public const double LevelB5 = 180;  // pornire P2
-        public const double LevelB3 = 240;  // nivel critic - alarma
+        public double LevelB1 = 30;  // nivel minim - oprire pompe
+        public  double LevelB2 =>IsAnalogModeActive ? _savedLevelB2:100.0;  // pornire P1
+        public double LevelB4 = 80;   // backup pentru B1
+        public double LevelB5 => IsAnalogModeActive ?_savedLevelB5 : 180.0;  // pornire P2
+        public double LevelB3 = 240;  // nivel critic - alarma
 
         public PompeViewModel() { }
 
@@ -112,6 +181,10 @@ namespace Simulator
                 OnPropertyChanged(nameof(WaterLevel));
                 // WaterTop se recalculeaza automat din WaterLevel
                 OnPropertyChanged(nameof(WaterTop));
+
+                // Notificăm PLC-ul că s-a schimbat tensiunea pe ieșirile analogice
+                OnPropertyChanged(nameof(AnalogOutput1_WaterLevelVoltage));
+                OnPropertyChanged(nameof(AnalogOutput2_SetPointVoltage));
             }
         }
 
@@ -159,35 +232,78 @@ namespace Simulator
                     IsPump1Running = false;
                     IsPump2Running = false;
                     IsAlarmOn = false;
-                    // Nicio pompa - apa creste continuu
-                    WaterLevel += 0.5;
-                    if (WaterLevel >= LevelB2)
-                        ForceNextState(ProcessState.Pump1Running);
-                    if (WaterLevel >= LevelB3)
-                        TriggerAlarmB3();
+
+                    if (IsAnalogModeActive)
+                    {
+
+                        WaterLevel += (PotentiometerVoltage1 * 0.1); // Crește conform debitului setat de U1
+
+                        if (WaterLevel >= _savedLevelB2)
+                            ForceNextState(ProcessState.Pump1Running);
+                        if (WaterLevel >= _savedLevelB5)
+                            ForceNextState(ProcessState.BothPumpsRunning);
+
+
+                    }
+                    else
+                    {
+                        // Nicio pompa - apa creste continuu
+                        WaterLevel += 0.5;
+
+                        if (WaterLevel >= LevelB2)
+                            ForceNextState(ProcessState.Pump1Running);
+                    }
+                        if (WaterLevel >= LevelB3)
+                            TriggerAlarmB3();
+                    
+                    
                     break;
+
 
                 case ProcessState.Pump1Running:
                     IsSystemOn = true;
                     IsPump1Running = true;
                     IsPump2Running = false;
                     IsAlarmOn = false;
-                    if (_isHighInflowRate)
+
+                    if (IsAnalogModeActive)
                     {
-                        // Admisie mare: P1 nu face fata - nivel creste lent spre B5
-                        WaterLevel += 0.2;
-                        if (WaterLevel >= LevelB5)
+
+                        if (_isHighInflowRate)
+                        {
+                            //// Dacă admisia e MARE, multiplicăm efectul potențiometrului 1
+                            WaterLevel += -0.5 + (PotentiometerVoltage1 * 0.15);
+                        }
+                        else
+                        {
+                            // Caz analogic normal
+                            WaterLevel += -0.5 + (PotentiometerVoltage1 * 0.05);
+                        }
+                        if (WaterLevel >= _savedLevelB5)
                             ForceNextState(ProcessState.BothPumpsRunning);
                     }
                     else
                     {
-                        // Caz normal: P1 evacueaza mai repede decat intra - nivel scade
-                        WaterLevel -= 0.5;
-                        if (WaterLevel <= EffectiveLevelMin)
-                            ForceNextState(ProcessState.On_NoPump);
+                        // --- LOGICA IMPLICITA (CAND MODUL ANALOGIC E DEZACTIVAT) ---
+                        if (_isHighInflowRate)
+                        {
+                            WaterLevel += 0.2;
+                            if (WaterLevel >= LevelB5)
+                                ForceNextState(ProcessState.BothPumpsRunning);
+                        }
+                        else
+                        {
+                            WaterLevel -= 0.5;
+                        }
                     }
+
+                    // conditia de oprire 
+                    if (WaterLevel <= EffectiveLevelMin)
+                        ForceNextState(ProcessState.On_NoPump);
+
                     if (WaterLevel >= LevelB3)
                         TriggerAlarmB3();
+           
                     break;
 
                 case ProcessState.BothPumpsRunning:
@@ -195,8 +311,13 @@ namespace Simulator
                     IsPump1Running = true;
                     IsPump2Running = true;
                     IsAlarmOn = false;
-                    // Ambele pompe - nivel scade rapid
-                    WaterLevel -= 0.8;
+
+                    if (IsAnalogModeActive)
+                        WaterLevel += -0.8 + (PotentiometerVoltage1 * 0.05);
+                    else
+                        // Ambele pompe - nivel scade rapid
+                        WaterLevel -= 0.8;
+
                     if (WaterLevel <= EffectiveLevelMin)
                         ForceNextState(ProcessState.On_NoPump);
                     break;
@@ -219,7 +340,13 @@ namespace Simulator
                     IsPump1Running = false;
                     IsPump2Running = false;
                     IsAlarmOn = true;
-                    WaterLevel += 0.3;
+
+
+                    if (IsAnalogModeActive)
+                        WaterLevel += (PotentiometerVoltage1 * 0.05);
+                    else
+                        WaterLevel += 0.3;
+
                     if (WaterLevel >= LevelB3)
                         TriggerAlarmB3();
                     break;
@@ -255,12 +382,62 @@ namespace Simulator
             TheStateOfTheProcess = ProcessState.AlarmB3;
         }
 
-        // Forteaza imediat o stare noua, anulând orice tranzitie in asteptare
+        // Forteaza imediat o stfare noua, anulând orice tranzitie in asteptare
         public void ForceNextState(ProcessState nextState)
         {
             _isChangingStateInProgress = false;
             timer.Stop();
             TheStateOfTheProcess = nextState;
+        }
+
+        // ===== LOGICA MOD ANALOGIC (FUNCTIONALITATEA 2) =====
+
+        // Flags pentru a ști dacă butoanele de pe interfață sunt ținute apăsate
+        public bool IsS1Pressed { get; set; } = false;
+        public bool IsS3Pressed { get; set; } = false;
+        public bool IsS4Pressed { get; set; } = false;
+
+        private bool _isP1ThresholdSet = false;
+        private bool _isP2ThresholdSet = false;
+
+        // Canvas.Top pentru liniile analogice (400 - nivel salvat)
+        public double LevelB2Top => 400 - _savedLevelB2;
+        public double LevelB5Top => 400 - _savedLevelB5;
+
+        public double Pot2TargetPixelLevel => (PotentiometerVoltage2 / 10.0) * 260.0;
+        public double Pot2TargetTop => 400 - Pot2TargetPixelLevel;
+
+        // Vizibilitatea liniilor analogice - apar doar cand modul e activ
+        public System.Windows.Visibility AnalogLinesVisibility =>
+            IsAnalogModeActive ? System.Windows.Visibility.Visible : System.Windows.Visibility.Hidden;
+
+        /// <summary>
+        /// Verifica dacă butoanele sunt apasate simultan și salveaza noul prag din Potentiometrul 2
+        /// </summary>
+        public void CheckAndSaveAnalogThresholds()
+        {
+            if (!IsAnalogModeActive) return;
+
+            // Convertim tensiunea de pe Potențiometrul 2 (0-10V) în nivel de pixeli (0-260px)
+            double targetPixelLevel = (_potentiometerVoltage2 / 10.0) * 260.0;
+
+            if (IsS1Pressed && IsS3Pressed)
+            {
+                // S1 + S3 -> Setare Pompa 1
+                _savedLevelB2 = Math.Max(LevelB1 + 10, Math.Min(LevelB3 - 20, targetPixelLevel));
+                _isP1ThresholdSet = true;
+                OnPropertyChanged(nameof(LevelB2));
+                OnPropertyChanged(nameof(LevelB2Top));
+            }
+            else if (IsS1Pressed && IsS4Pressed)
+            {
+                // S1 + S4 -> Setare Pompa 2
+                double minB5 = _savedLevelB2 + 20;
+                _savedLevelB5 = Math.Max(minB5, Math.Min(LevelB3 - 10, targetPixelLevel));
+                _isP2ThresholdSet = true;
+                OnPropertyChanged(nameof(LevelB5));
+                OnPropertyChanged(nameof(LevelB5Top));
+            }
         }
 
         // ===== PROPRIETATI BINDING =====
