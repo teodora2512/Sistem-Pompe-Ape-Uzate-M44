@@ -1,0 +1,367 @@
+/* =========================================
+   1. SETĂRI GLOBALE & STRUCTURĂ PRINCIPALĂ
+   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #05080f; /* Fundal foarte închis, specific dispeceratelor */
+  color: #cbd5e1;
+  font-family: 'Inter', sans-serif;
+}
+
+.scada-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.scada-viewport {
+  flex: 3;
+  padding: 2vh 3vw;
+  display: flex;
+  flex-direction: column;
+  background-color: #0d111c;
+}
+
+.scada-panel {
+  flex: 1;
+  background-color: #131826;
+  border-left: 1px solid #1e293b;
+  padding: 2vh 2vw;
+  display: flex;
+  flex-direction: column;
+}
+
+.scada-title {
+  margin: 0 0 15px 0;
+  font-size: 22px;
+  color: #f8fafc;
+  letter-spacing: 0.5px;
+}
+
+.system-time {
+  font-size: 13px;
+  color: #38bdf8;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+/* =========================================
+   2. METRICI SUPERIOARE (Codul tău păstrat)
+   ========================================= */
+.telemetry-summary-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 2vh;
+}
+.summary-card {
+  background-color: #1b2030;
+  border: 1px solid #2e3748;
+  border-radius: 6px;
+  padding: 10px 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.card-label {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.card-value {
+  font-size: 18px;
+  font-weight: bold;
+}
+.text-green { color: #22c55e; }
+.text-red { color: #ef4444; }
+.text-orange { color: #f97316; }
+.text-gray { color: #94a3b8; }
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+.badge-green { background-color: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid #22c55e; }
+.badge-red { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; }
+
+
+/* =========================================
+   3. GRAFICA SCADA (Bazin, Conducte, Pompe)
+   ========================================= */
+.canvas {
+  position: relative;
+  flex: 1;
+  background-color: #0f1423;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+}
+
+/* Conducte */
+.pipe-inlet {
+  position: absolute;
+  top: 15%;
+  left: 0;
+  width: 30%;
+  height: 12px;
+  background: linear-gradient(to bottom, #475569, #1e293b);
+  border-top: 1px solid #64748b;
+  border-bottom: 1px solid #0f172a;
+}
+.label-u1 {
+  position: absolute;
+  top: -20px;
+  left: 20px;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: bold;
+}
+
+/* Rezervor */
+.tank {
+  position: relative;
+  width: 50%;
+  height: 50%;
+  border: 3px solid #334155;
+  border-top: none;
+  background-color: rgba(15, 23, 42, 0.8);
+  border-radius: 0 0 10px 10px;
+  display: flex;
+  align-items: flex-end;
+}
+
+/* Apa și animațiile ei */
+.water {
+  width: 100%;
+  background: linear-gradient(to bottom, rgba(56, 189, 248, 0.6), rgba(2, 132, 199, 0.8));
+  transition: height 1s ease-in-out;
+  position: relative;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 -2px 10px rgba(56, 189, 248, 0.2);
+}
+.water-surface {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 4px;
+  background-color: rgba(125, 211, 252, 0.8);
+}
+
+/* Senzori pe bazin */
+.sensor {
+  position: absolute;
+  left: -90px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+.sensor.active { color: #f8fafc; }
+
+.sensor-node {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #334155;
+  background-color: #0f172a;
+  transition: all 0.3s ease;
+}
+
+/* Poziții Senzori */
+.label-b3 { bottom: 85%; }
+.label-b5 { bottom: 65%; left: auto; right: -110px; flex-direction: row-reverse; }
+.label-b2 { bottom: 40%; }
+.label-b4 { bottom: 20%; left: auto; right: -110px; flex-direction: row-reverse; }
+.label-b1 { bottom: 5%; }
+
+/* Culori Senzori Activi */
+.sensor.active .sensor-node.red { background-color: #ef4444; border-color: #fca5a5; box-shadow: 0 0 10px #ef4444; }
+.sensor.active .sensor-node.orange { background-color: #f97316; border-color: #fdba74; box-shadow: 0 0 10px #f97316; }
+.sensor.active .sensor-node.green { background-color: #22c55e; border-color: #86efac; box-shadow: 0 0 10px #22c55e; }
+.sensor.active .sensor-node.blue { background-color: #38bdf8; border-color: #bae6fd; box-shadow: 0 0 10px #38bdf8; }
+.crit-text { color: #ef4444; font-weight: bold; margin-left: 5px; animation: blink 1s infinite; }
+
+/* Pompe / Motoare M1 și M2 */
+.pumps-row {
+  display: flex;
+  gap: 60px;
+  margin-top: 15px;
+}
+.pump-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+.pump-label {
+  font-size: 11px;
+  font-weight: bold;
+  color: #94a3b8;
+}
+.pump-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #1e293b;
+  border: 3px solid #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.pump-text {
+  font-size: 14px;
+  font-weight: bold;
+  color: #f8fafc;
+  z-index: 2;
+}
+.pump-blades {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px dashed rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+.pump-blades.running {
+  border-color: rgba(34, 197, 94, 0.5);
+  animation: spin 0.5s linear infinite;
+}
+
+/* =========================================
+   4. TABEL ISTORIC
+   ========================================= */
+.historical-table-container {
+  margin-top: 2vh;
+  background-color: #0d111c;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  padding: 12px;
+}
+.section-title {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.table-wrapper {
+  max-height: 140px;
+  overflow-y: auto;
+}
+.scada-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.scada-table th {
+  background-color: #1e293b;
+  color: #94a3b8;
+  padding: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.scada-table td {
+  padding: 8px;
+  border-bottom: 1px solid #1e293b;
+  color: #cbd5e1;
+}
+.scada-table tr:hover { background-color: rgba(255,255,255,0.02); }
+.tr-alarm { background-color: rgba(239, 68, 68, 0.08); }
+.badge-code {
+  background: #334155;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+/* =========================================
+   5. PANOUL DE DREAPTA (Leduri și Info Box)
+   ========================================= */
+.scada-panel h3 {
+  margin-top: 0;
+  color: #f8fafc;
+}
+
+.panel-section {
+  margin-bottom: 25px;
+}
+
+.panel-section h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #1e293b;
+  padding-bottom: 5px;
+}
+
+.led-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+.led {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #1e293b;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+  transition: all 0.3s ease;
+}
+
+.active-green { background-color: #22c55e; box-shadow: 0 0 8px #22c55e; }
+.active-gray { background-color: #94a3b8; box-shadow: 0 0 8px #94a3b8; }
+
+/* Info Box (Codul tău păstrat) */
+.info-box {
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 12px;
+  color: #94a3b8;
+  border: 1px solid #1e293b;
+}
+.info-box p { margin: 6px 0; }
+.info-box strong { color: #cbd5e1; }
+
+/* =========================================
+   ANIMATII KEYFRAMES
+   ========================================= */
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
