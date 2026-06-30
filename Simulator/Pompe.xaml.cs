@@ -1,6 +1,8 @@
 ﻿using DataModel;
 using System.Diagnostics.Eventing.Reader;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Simulator
 {
@@ -149,6 +151,87 @@ namespace Simulator
         {
             _viewModel.ForceNextState(ProcessState.Alarm);
             StatusLabel.Text = "Simulare: Releu protectie! Pompe oprite - apa urca spre B3...";
+        }
+
+        // === POTENTIOMETRE - control prin drag rotativ ===
+
+        private bool _isDraggingPot1 = false;
+        private bool _isDraggingPot2 = false;
+
+        private double AngleToVoltage(Point mousePos, Point center)
+        {
+            double dx = mousePos.X - center.X;
+            double dy = mousePos.Y - center.Y;
+            double angleDeg = System.Math.Atan2(dx, -dy) * (180.0 / System.Math.PI);
+            angleDeg = System.Math.Max(-135, System.Math.Min(135, angleDeg));
+            double voltage = (angleDeg + 135) / 270.0 * 10.0;
+            return System.Math.Max(0, System.Math.Min(10, voltage));
+        }
+
+        private void Potentiometer1_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _isDraggingPot1 = true;
+            ((UIElement)sender).CaptureMouse();
+            var element = (FrameworkElement)sender;
+            var center = new Point(element.ActualWidth / 2, element.ActualHeight / 2);
+            _viewModel.PotentiometerVoltage1 = AngleToVoltage(e.GetPosition(element), center);
+        }
+
+        private void Potentiometer1_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_isDraggingPot1 && e.LeftButton == MouseButtonState.Pressed)
+            {
+                var element = (FrameworkElement)sender;
+                var center = new Point(element.ActualWidth / 2, element.ActualHeight / 2);
+                _viewModel.PotentiometerVoltage1 = AngleToVoltage(e.GetPosition(element), center);
+            }
+        }
+
+        private void Potentiometer1_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            _isDraggingPot1 = false;
+            ((UIElement)sender).ReleaseMouseCapture();
+        }
+
+        private void Potentiometer2_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _isDraggingPot2 = true;
+            ((UIElement)sender).CaptureMouse();
+            var element = (FrameworkElement)sender;
+            var center = new Point(element.ActualWidth / 2, element.ActualHeight / 2);
+            _viewModel.PotentiometerVoltage2 = AngleToVoltage(e.GetPosition(element), center);
+        }
+
+        private void Potentiometer2_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_isDraggingPot2 && e.LeftButton == MouseButtonState.Pressed)
+            {
+                var element = (FrameworkElement)sender;
+                var center = new Point(element.ActualWidth / 2, element.ActualHeight / 2);
+                _viewModel.PotentiometerVoltage2 = AngleToVoltage(e.GetPosition(element), center);
+            }
+        }
+
+        private void Potentiometer2_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            _isDraggingPot2 = false;
+            ((UIElement)sender).ReleaseMouseCapture();
+        }
+
+        private void Potentiometer1_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            double step = e.Delta > 0 ? 0.5 : -0.5;
+            _viewModel.PotentiometerVoltage1 =
+                System.Math.Max(0, System.Math.Min(10, _viewModel.PotentiometerVoltage1 + step));
+            e.Handled = true;
+        }
+
+        private void Potentiometer2_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            double step = e.Delta > 0 ? 0.5 : -0.5;
+            _viewModel.PotentiometerVoltage2 =
+                System.Math.Max(0, System.Math.Min(10, _viewModel.PotentiometerVoltage2 + step));
+            e.Handled = true;
         }
     }
 }

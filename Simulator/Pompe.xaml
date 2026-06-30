@@ -418,7 +418,11 @@
 
                     <TextBlock Text="Y Zulauf / Inflow" Foreground="#E0E0E0" FontSize="11" HorizontalAlignment="Center" Margin="0,2,0,2"/>
                     <Slider Minimum="0" Maximum="10" Value="{Binding PotentiometerVoltage1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Opacity="0.01" Width="60" Height="60"/>
-                    <Grid HorizontalAlignment="Center" Margin="0,0,0,10" Width="66" Height="66">
+                    <Grid HorizontalAlignment="Center" Margin="0,0,0,10" Width="66" Height="66"
+                      MouseLeftButtonDown="Potentiometer1_MouseLeftButtonDown"
+                      MouseMove="Potentiometer1_MouseMove"
+                      MouseLeftButtonUp="Potentiometer1_MouseLeftButtonUp"
+                      MouseWheel="Potentiometer1_MouseWheel">
                         <Ellipse Width="65" Height="65" Stroke="#555555" StrokeThickness="1" StrokeDashArray="3,3"/>
                         <Ellipse Width="50" Height="50" Fill="#252535" Stroke="#888888" StrokeThickness="2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <Grid Width="50" Height="50" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -435,7 +439,11 @@
                         <TextBlock Text="U2" FontSize="11" FontWeight="Bold" Foreground="#E0E0E0" VerticalAlignment="Center"/>
                         <TextBlock Text=" Soll-Pegel / Setpoint level" Foreground="#E0E0E0" FontSize="11" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <Grid HorizontalAlignment="Center" Margin="0,0,0,15" Width="66" Height="66">
+                    <Grid HorizontalAlignment="Center" Margin="0,0,0,15" Width="66" Height="66"
+                      MouseLeftButtonDown="Potentiometer2_MouseLeftButtonDown"
+                      MouseMove="Potentiometer2_MouseMove"
+                      MouseLeftButtonUp="Potentiometer2_MouseLeftButtonUp"
+                      MouseWheel="Potentiometer2_MouseWheel">
                         <Ellipse Width="65" Height="65" Stroke="#555555" StrokeThickness="1" StrokeDashArray="3,3"/>
                         <Ellipse Width="50" Height="50" Fill="#252535" Stroke="#888888" StrokeThickness="2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
